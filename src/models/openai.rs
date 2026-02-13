@@ -71,6 +71,64 @@ impl ChatMessage {
             Some(other) => other.to_string(),
         }
     }
+
+    /// Extract base64 images from content blocks, save to temp files,
+    /// and return their paths.
+    pub fn extract_images(&self) -> Vec<String> {
+        use base64::Engine;
+
+        let arr = match &self.content {
+            Some(serde_json::Value::Array(a)) => a,
+            _ => return vec![],
+        };
+
+        let mut paths = Vec::new();
+        for item in arr {
+            if item.get("type").and_then(|v| v.as_str()) != Some("image_url") {
+                continue;
+            }
+            let url = match item
+                .get("image_url")
+                .and_then(|v| v.get("url"))
+                .and_then(|v| v.as_str())
+            {
+                Some(u) => u,
+                None => continue,
+            };
+            if !url.starts_with("data:image/") {
+                continue;
+            }
+            let parts: Vec<&str> = url.splitn(2, ',').collect();
+            if parts.len() != 2 {
+                continue;
+            }
+            let header = parts[0];
+            let ext = if header.contains("png") {
+                "png"
+            } else if header.contains("jpeg") || header.contains("jpg") {
+                "jpg"
+            } else if header.contains("gif") {
+                "gif"
+            } else if header.contains("webp") {
+                "webp"
+            } else {
+                "png"
+            };
+            match base64::engine::general_purpose::STANDARD.decode(parts[1]) {
+                Ok(bytes) => {
+                    let path =
+                        format!("/tmp/claude_image_{}.{}", uuid::Uuid::new_v4(), ext);
+                    if std::fs::write(&path, &bytes).is_ok() {
+                        paths.push(path);
+                    }
+                }
+                Err(e) => {
+                    tracing::warn!(error = %e, "Failed to decode base64 image");
+                }
+            }
+        }
+        paths
+    }
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
