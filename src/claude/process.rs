@@ -155,8 +155,14 @@ impl ClaudeProcess {
         ))
     }
 
-    /// Kill the subprocess.
+    /// Kill the subprocess and reap it to avoid zombies.
     pub async fn kill(&mut self) {
         let _ = self.child.kill().await;
+        let _ = self.child.wait().await;
+    }
+
+    /// Wait for the subprocess to finish and reap it.
+    pub async fn reap(&mut self) {
+        let _ = self.child.wait().await;
     }
 }
