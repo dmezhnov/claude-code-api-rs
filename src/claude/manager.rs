@@ -79,9 +79,11 @@ impl ClaudeManager {
         }
     }
 
-    /// Remove a finished session from tracking.
+    /// Remove a finished session from tracking and reap the child process.
     pub async fn session_finished(&self, session_id: &str) {
-        self.active.write().await.remove(session_id);
+        if let Some(mut process) = self.active.write().await.remove(session_id) {
+            process.reap().await;
+        }
     }
 
     /// Number of currently active sessions.
@@ -94,12 +96,25 @@ impl ClaudeManager {
         self.active.read().await.keys().cloned().collect()
     }
 
-    /// Stop all sessions.
+    /// Stop all sessions and reap all child processes.
     pub async fn cleanup_all(&self) {
         let mut map = self.active.write().await;
         for (sid, mut process) in map.drain() {
             process.kill().await;
             tracing::info!(session_id = %sid, "Session cleaned up");
+        }
+    }
+
+    /// Log how many active sessions remain (useful for debugging leaks).
+    pub async fn debug_sessions(&self) {
+        let map = self.active.read().await;
+        if !map.is_empty() {
+            let ids: Vec<_> = map.keys().collect();
+            tracing::warn!(
+                count = map.len(),
+                sessions = ?ids,
+                "Active sessions still tracked"
+            );
         }
     }
 }
