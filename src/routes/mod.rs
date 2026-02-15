@@ -1,5 +1,6 @@
 pub mod root;
 pub mod chat;
+pub mod embeddings;
 pub mod models;
 pub mod projects;
 pub mod sessions;
@@ -24,6 +25,8 @@ pub fn build_router(state: Arc<AppState>) -> Router {
             "/chat/completions/{session_id}",
             delete(chat::stop_completion),
         )
+        // Embeddings
+        .route("/embeddings", post(embeddings::create_embeddings))
         // Models
         .route("/models", get(models::list_models))
         .route("/models/capabilities", get(models::get_model_capabilities))

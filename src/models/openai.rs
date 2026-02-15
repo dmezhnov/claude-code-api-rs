@@ -228,6 +228,53 @@ pub struct ChunkDelta {
     pub tool_calls: Option<Vec<ToolCall>>,
 }
 
+// -- Embedding types --
+
+#[derive(Debug, Deserialize)]
+pub struct EmbeddingRequest {
+    pub input: EmbeddingInput,
+    #[serde(default = "default_embedding_model")]
+    pub model: String,
+    #[serde(default)]
+    pub encoding_format: Option<String>,
+    #[serde(default)]
+    pub dimensions: Option<usize>,
+    #[serde(default)]
+    pub user: Option<String>,
+}
+
+fn default_embedding_model() -> String {
+    "text-embedding-local".to_string()
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(untagged)]
+pub enum EmbeddingInput {
+    Single(String),
+    Multiple(Vec<String>),
+}
+
+#[derive(Debug, Serialize)]
+pub struct EmbeddingResponse {
+    pub object: String,
+    pub data: Vec<EmbeddingData>,
+    pub model: String,
+    pub usage: EmbeddingUsage,
+}
+
+#[derive(Debug, Serialize)]
+pub struct EmbeddingData {
+    pub object: String,
+    pub index: u32,
+    pub embedding: Vec<f32>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct EmbeddingUsage {
+    pub prompt_tokens: u32,
+    pub total_tokens: u32,
+}
+
 // -- Other types --
 
 #[derive(Debug, Deserialize)]
