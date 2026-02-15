@@ -36,7 +36,10 @@ impl Config {
             session_timeout_minutes: env_or("SESSION_TIMEOUT_MINUTES", "30")
                 .parse()
                 .unwrap_or(30),
-            project_root: PathBuf::from(env_or("PROJECT_ROOT", "/tmp/claude_projects")),
+            project_root: PathBuf::from(env_or(
+                "PROJECT_ROOT",
+                &std::env::temp_dir().join("claude_projects").to_string_lossy(),
+            )),
             allowed_origins: env_csv_or("ALLOWED_ORIGINS", vec!["*".to_string()]),
             rate_limit_requests_per_minute: env_or("RATE_LIMIT_REQUESTS_PER_MINUTE", "100")
                 .parse()

@@ -117,7 +117,10 @@ impl ChatMessage {
             match base64::engine::general_purpose::STANDARD.decode(parts[1]) {
                 Ok(bytes) => {
                     let path =
-                        format!("/tmp/claude_image_{}.{}", uuid::Uuid::new_v4(), ext);
+                        std::env::temp_dir()
+                            .join(format!("claude_image_{}.{}", uuid::Uuid::new_v4(), ext))
+                            .to_string_lossy()
+                            .to_string();
                     if std::fs::write(&path, &bytes).is_ok() {
                         paths.push(path);
                     }
